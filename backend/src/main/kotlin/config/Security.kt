@@ -17,12 +17,10 @@ object Security {
         if (token.isNullOrBlank()) return null
 
         return try {
-            // ✅ Сначала проверяем старый формат "test-token-XXX"
             if (token.startsWith("test-token-")) {
                 return token.removePrefix("test-token-")
             }
 
-            // Новый формат: Base64-encoded JSON
             val json = String(Base64.getDecoder().decode(token))
             val obj = Json.parseToJsonElement(json).jsonObject
             val exp = obj["exp"]?.jsonPrimitive?.longOrNull ?: return null
@@ -30,10 +28,10 @@ object Security {
             if (exp > System.currentTimeMillis() / 1000) {
                 obj["user_id"]?.jsonPrimitive?.contentOrNull
             } else {
-                null // Токен истёк
+                null
             }
         } catch (e: Exception) {
-            // Если не удалось распарсить — возможно это старый формат без префикса
+
             println("Token parse error: ${e.message}")
             null
         }
