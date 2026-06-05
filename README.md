@@ -15,7 +15,7 @@
 ### **Демо - видео**
 Здесь вы можете найти демо - видео проекта.
 
-[Демо - видео(Git)](./MyVoronesh.pdf)
+[Демо - видео(Git)](./MyVoronesh (1).pdf)
 
 [Демо - видео(ЯндексДиск)](https://disk.yandex.ru/i/qWtF0JUqJuzQlQ)
 
