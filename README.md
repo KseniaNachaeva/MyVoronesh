@@ -59,14 +59,14 @@
 
 ### Предварительные требования
 *   JDK 17+
-*   Android Studio Ladybug или новее
+*   Android Studio
 *   MySQL Server
 
 ### Шаг 1: Настройка базы данных
 1.  Установите и запустите MySQL.
 2.  Создайте пустую базу данных с именем `MyVoronesh`.
 3.  Импортируйте структуру и данные из дампа, который находится в папке `database/`:
-    *   **Через phpMyAdmin:** Выберите базу `MyVoronesh` -> Импорт -> Выберите файл `database/init_db.sql`.
+    *   **Через phpMyAdmin:** Выберите базу `MyVoronesh` -> Импорт -> Выберите файл `database/MyVoronesh.sql`.
     *   **Через консоль:**
         ```bash
         mysql -u root -p MyVoronesh < database/init_db.sql
