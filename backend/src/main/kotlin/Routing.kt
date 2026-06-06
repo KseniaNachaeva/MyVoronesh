@@ -20,4 +20,3 @@ fun Route.healthRoute() {
         call.respond(mapOf("status" to "ok", "time" to System.currentTimeMillis()))
     }
 }
-

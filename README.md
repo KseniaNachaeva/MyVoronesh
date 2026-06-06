@@ -43,7 +43,7 @@
     *   **Через phpMyAdmin:** Выберите базу `MyVoronesh` -> Импорт -> Выберите файл `database/init_db.sql`.
     *   **Через консоль:**
         ```bash
-        mysql -u root -p MyVoronesh < database/init_db.sql
+        mysql -u root -p MyVoronesh < database/MyVoronesh.sql
         ```
 
 ### Шаг 2: Запуск Backend (Сервер)

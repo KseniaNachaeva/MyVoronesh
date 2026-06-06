@@ -10,8 +10,12 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
+    // Адрес бэкенда. Меняется только здесь — не нужно трогать репозитории.
+    //
+    // Для эмулятора Android:    "http://10.0.2.2:8080/"
+    // Для реального устройства: "http://192.168.X.X:8080/"  (IP вашей машины в сети)
+    // Для продакшна:            "https://your-domain.com/"
     private const val BASE_URL = "http://10.0.2.2:8080/"
-    //private const val BASE_URL = "http://192.168.0.105:8080/"
 
     private var tokenManager: TokenManager? = null
     private var retrofit: Retrofit? = null
@@ -24,22 +28,16 @@ object ApiClient {
     private fun getAuthInterceptor(): Interceptor {
         return Interceptor { chain ->
             val originalRequest = chain.request()
-
             val token = tokenManager?.token
-
             val newRequest = originalRequest.newBuilder()
                 .addHeader("Content-Type", "application/json")
                 .apply {
                     if (!token.isNullOrEmpty() && !originalRequest.url.encodedPath.contains("/auth")) {
                         addHeader("Authorization", "Bearer $token")
                     }
-
                 }
                 .build()
-
             Log.d("ApiClient", "Request: ${newRequest.url}")
-            Log.d("ApiClient", "Token: ${token?.take(20)}...")
-
             chain.proceed(newRequest)
         }
     }
@@ -50,7 +48,6 @@ object ApiClient {
         }.apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
-
         return OkHttpClient.Builder()
             .addInterceptor(getAuthInterceptor())
             .addInterceptor(loggingInterceptor)

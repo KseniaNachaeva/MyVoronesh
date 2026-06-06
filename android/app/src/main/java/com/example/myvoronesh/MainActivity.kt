@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.myvoronesh.core.ui.theme.MyVORONESHTheme
+import com.example.myvoronesh.core.ui.theme.ThemeManager
 import com.example.myvoronesh.core.navigation.AppNavigation
 import com.yandex.mapkit.MapKitFactory
 
@@ -32,10 +33,14 @@ class MainActivity : ComponentActivity() {
             e.printStackTrace()
         }
 
+        ThemeManager.init(this)
         enableEdgeToEdge()
 
         setContent {
-            MyVORONESHTheme {
+            MyVORONESHTheme(
+                darkTheme = ThemeManager.isDarkTheme,
+                dynamicColor = false
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

@@ -6,6 +6,7 @@ import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.javatime.datetime
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
+import config.AppConfig
 
 // ==================== ТАБЛИЦЫ ====================
 
@@ -42,7 +43,7 @@ object UserPointProgress : Table("user_point_progress") {
 
 object PointRepository {
 
-    private const val BASE_URL = "http://10.0.2.2/myvoronesh_api"
+    private val baseUrl get() = AppConfig.baseUrl
 
     /**
      * Получить точки квеста
@@ -118,7 +119,7 @@ object PointRepository {
                     longitude = row[QuestPoints.longitude].toDouble(),
                     address = row[QuestPoints.address],
                     imageUrl = imageUrl,
-                    imageFullUrl = imageUrl?.let { "$BASE_URL/$it?t=${System.currentTimeMillis()}" },
+                    imageFullUrl = imageUrl?.let { "$baseUrl/uploads/$it?t=${System.currentTimeMillis()}" },
                     audioUrl = row[QuestPoints.audioUrl],
                     orderIndex = row[QuestPoints.orderIndex],
                     pointsReward = row[QuestPoints.pointsReward],
@@ -203,7 +204,7 @@ object PointRepository {
             longitude = this[QuestPoints.longitude].toDouble(),
             address = this[QuestPoints.address],
             imageUrl = imageUrl,
-            imageFullUrl = imageUrl?.let { "$BASE_URL/$it" },
+            imageFullUrl = imageUrl?.let { "$baseUrl/uploads/$it" },
             audioUrl = this[QuestPoints.audioUrl],
             orderIndex = this[QuestPoints.orderIndex],
             pointsReward = this[QuestPoints.pointsReward],

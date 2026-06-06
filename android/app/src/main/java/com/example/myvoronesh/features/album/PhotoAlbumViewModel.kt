@@ -53,9 +53,7 @@ class PhotoAlbumViewModel(application: Application) :
                             photos = dto.photos.map { p ->
                                 Photo(
                                     id = p.id,
-                                    imageUrl = p.fullUrl
-                                        .replace("http://localhost/", "http://10.0.2.2/")
-                                        .replace("http://127.0.0.1/", "http://10.0.2.2/"),
+                                    imageUrl = p.fullUrl,
                                     description = p.description ?: ""
                                 )
                             }

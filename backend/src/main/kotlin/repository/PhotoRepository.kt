@@ -1,5 +1,6 @@
 package repository
 
+import config.AppConfig
 import dto.LocationPhotosDto
 import dto.MyPhotosResponse
 import dto.PhotoDto
@@ -23,25 +24,17 @@ object UserPhotos : Table("user_photos") {
     val description = text("description").nullable()
     val isPublic = bool("is_public").default(false)
     val createdAt = datetime("created_at").defaultExpression(CurrentDateTime)
-
     override val primaryKey = PrimaryKey(id)
 }
 
 object PhotoRepository {
 
-    //private const val BASE_URL = "http://10.0.2.2/myvoronesh_api"
-    private const val BASE_URL = "http://10.0.2.2/myvoronesh_api"
+    private const val RELATIVE_PHOTO_DIR = "photos"
 
+    // uploadDir берётся из AppConfig, который инициализируется при старте приложения
+    private val uploadDir get() = AppConfig.uploadDir
+    private val baseUrl get() = AppConfig.baseUrl
 
-    // ✅ Абсолютный путь для СОХРАНЕНИЯ файлов
-    private const val UPLOAD_BASE_DIR = "/opt/lampp/htdocs/myvoronesh_api"
-
-    // ✅ Относительный путь для ЗАПИСИ в БД
-    private const val RELATIVE_PHOTO_DIR = "uploads/photos"
-
-    /**
-     * Загрузить фото
-     */
     fun uploadPhoto(
         userId: String,
         pointId: String,
@@ -49,37 +42,30 @@ object PhotoRepository {
         fileBytes: ByteArray,
         fileName: String
     ): PhotoUploadResponse? = transaction {
-
         val photoId = UUID.randomUUID().toString()
 
-        // Определяем расширение
         val extension = fileName.substringAfterLast(".", "jpg").lowercase()
         val allowedExtensions = listOf("jpg", "jpeg", "png", "webp", "gif")
         val finalExtension = if (extension in allowedExtensions) extension else "jpg"
 
-        // ✅ Абсолютный путь для создания директории и сохранения файла
-        val absoluteUserDir = File("$UPLOAD_BASE_DIR/$RELATIVE_PHOTO_DIR/$userId")
+        // Папка: {uploadDir}/photos/{userId}/
+        val absoluteUserDir = File("$uploadDir/$RELATIVE_PHOTO_DIR/$userId")
         if (!absoluteUserDir.exists()) {
             absoluteUserDir.mkdirs()
         }
 
-        // Имя файла
         val photoFileName = "$photoId.$finalExtension"
-
-        // ✅ Относительный путь для записи в БД
+        // В БД хранится относительный путь: photos/{userId}/{photoId}.jpg
         val relativePath = "$RELATIVE_PHOTO_DIR/$userId/$photoFileName"
+        val absolutePath = "$uploadDir/$relativePath"
 
-        // ✅ Абсолютный путь для сохранения файла
-        val absolutePath = "$UPLOAD_BASE_DIR/$relativePath"
-        val file = File(absolutePath)
-        file.writeBytes(fileBytes)
+        File(absolutePath).writeBytes(fileBytes)
 
-        // ✅ В БД сохраняем ОТНОСИТЕЛЬНЫЙ путь
         UserPhotos.insert {
             it[id] = photoId
             it[UserPhotos.viserId] = userId
             it[UserPhotos.pointId] = pointId
-            it[photoUrl] = relativePath  // ← Относительный!
+            it[photoUrl] = relativePath
             it[UserPhotos.description] = description
             it[createdAt] = LocalDateTime.now()
         }
@@ -87,15 +73,12 @@ object PhotoRepository {
         PhotoUploadResponse(
             id = photoId,
             photoUrl = relativePath,
-            fullUrl = "$BASE_URL/$relativePath",
+            fullUrl = "$baseUrl/uploads/$relativePath",
             description = description,
             pointId = pointId
         )
     }
 
-    /**
-     * Получить фото для точки
-     */
     fun getPointPhotos(userId: String, pointId: String): List<PhotoDto> = transaction {
         UserPhotos
             .select {
@@ -107,16 +90,13 @@ object PhotoRepository {
                 PhotoDto(
                     id = row[UserPhotos.id],
                     photoUrl = photoUrl,
-                    fullUrl = "$BASE_URL/$photoUrl",
+                    fullUrl = "$baseUrl/uploads/$photoUrl",
                     description = row[UserPhotos.description],
                     createdAt = row[UserPhotos.createdAt].format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 )
             }
     }
 
-    /**
-     * Получить все фото пользователя, сгруппированные по локациям
-     */
     fun getMyPhotos(userId: String): MyPhotosResponse = transaction {
         val photos = UserPhotos
             .innerJoin(QuestPoints, { pointId }, { QuestPoints.id })
@@ -135,9 +115,7 @@ object PhotoRepository {
                 )
             }
 
-        // Группируем по точкам
         val grouped = photos.groupBy { it.pointId }
-
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 
         val locationPhotos = grouped.map { (pointId, pointPhotos) ->
@@ -151,7 +129,7 @@ object PhotoRepository {
                     PhotoDto(
                         id = photo.id,
                         photoUrl = photo.photoUrl,
-                        fullUrl = "$BASE_URL/${photo.photoUrl}",
+                        fullUrl = "$baseUrl/uploads/${photo.photoUrl}",
                         description = photo.description,
                         createdAt = photo.createdAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     )
@@ -165,31 +143,19 @@ object PhotoRepository {
         )
     }
 
-    /**
-     * Удалить фото
-     */
     fun deletePhoto(userId: String, photoId: String): Boolean = transaction {
-        // Получаем фото
         val photo = UserPhotos
             .select { (UserPhotos.id eq photoId) and (UserPhotos.viserId eq userId) }
             .singleOrNull() ?: return@transaction false
 
-        // ✅ Удаляем файл по абсолютному пути
         val relativePath = photo[UserPhotos.photoUrl]
-        val absolutePath = "$UPLOAD_BASE_DIR/$relativePath"
-        val file = File(absolutePath)
-        if (file.exists()) {
-            file.delete()
-        }
+        val file = File("$uploadDir/$relativePath")
+        if (file.exists()) file.delete()
 
-        // Удаляем из БД
         UserPhotos.deleteWhere { (id eq photoId) and (viserId eq userId) }
         true
     }
 
-    /**
-     * Подсчитать количество фото пользователя
-     */
     fun countPhotos(userId: String): Int = transaction {
         UserPhotos
             .select { UserPhotos.viserId eq userId }
@@ -197,7 +163,6 @@ object PhotoRepository {
             .toInt()
     }
 
-    // Вспомогательный класс
     private data class PhotoWithLocation(
         val id: String,
         val photoUrl: String,

@@ -217,7 +217,9 @@ fun ProfileScreen(
                         .padding(vertical = 8.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = "👋", fontSize = 32.sp)

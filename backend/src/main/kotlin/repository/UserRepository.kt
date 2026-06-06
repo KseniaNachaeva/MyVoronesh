@@ -1,5 +1,6 @@
 package repository
 
+import config.AppConfig
 import dto.UserDto
 import models.UserAuth
 import org.jetbrains.exposed.sql.*
@@ -17,14 +18,12 @@ object Users : Table("users") {
     val email = varchar("email", 100).nullable()
     val birthDate = date("birth_date").nullable()
     val avatarUrl = varchar("avatar_url", 255).nullable()
-
     override val primaryKey = PrimaryKey(id)
 }
 
 object UserRepository {
 
-    // ✅ Добавляем BASE_URL
-    private const val BASE_URL = "http://10.0.2.2/myvoronesh_api"
+    private val baseUrl get() = AppConfig.baseUrl
 
     fun findAuthByLogin(loginValue: String): UserAuth? = transaction {
         Users
@@ -45,14 +44,9 @@ object UserRepository {
             .select { Users.id eq userId }
             .map {
                 val avatarUrl = it[Users.avatarUrl]
-
-                // ✅ Формируем полный URL для аватарки
-                val avatarFullUrl = if (avatarUrl != null) {
-                    "$BASE_URL/$avatarUrl?t=${System.currentTimeMillis()}"
-                } else {
-                    null
+                val avatarFullUrl = avatarUrl?.let { url ->
+                    "$baseUrl/uploads/$url?t=${System.currentTimeMillis()}"
                 }
-
                 UserDto(
                     id = it[Users.id],
                     login = it[Users.login],
@@ -60,7 +54,7 @@ object UserRepository {
                     email = it[Users.email],
                     birthDate = it[Users.birthDate]?.toString(),
                     avatarUrl = avatarUrl,
-                    avatarFullUrl = avatarFullUrl  // ✅ Добавляем!
+                    avatarFullUrl = avatarFullUrl
                 )
             }
             .singleOrNull()
@@ -69,14 +63,12 @@ object UserRepository {
     fun createUser(login: String, password: String): UserDto? = transaction {
         val id = UUID.randomUUID().toString()
         val hash = BCrypt.hashpw(password, BCrypt.gensalt())
-
         Users.insert {
             it[Users.id] = id
             it[Users.login] = login
             it[Users.passwordHash] = hash
             it[Users.name] = login
         }
-
         UserDto(
             id = id,
             login = login,
@@ -94,13 +86,8 @@ object UserRepository {
         email: String?,
         birthDate: String?
     ): UserDto? = transaction {
-
         val parsedDate = birthDate?.let {
-            try {
-                LocalDate.parse(it)
-            } catch (e: Exception) {
-                null
-            }
+            try { LocalDate.parse(it) } catch (e: Exception) { null }
         }
 
         Users.update({ Users.id eq userId }) {
@@ -109,17 +96,13 @@ object UserRepository {
             it[Users.birthDate] = parsedDate
         }
 
-        // ✅ Возвращаем с avatarFullUrl
         Users
             .select { Users.id eq userId }
             .map {
                 val avatarUrl = it[Users.avatarUrl]
-                val avatarFullUrl = if (avatarUrl != null) {
-                    "$BASE_URL/$avatarUrl?t=${System.currentTimeMillis()}"
-                } else {
-                    null
+                val avatarFullUrl = avatarUrl?.let { url ->
+                    "$baseUrl/uploads/$url?t=${System.currentTimeMillis()}"
                 }
-
                 UserDto(
                     id = it[Users.id],
                     login = it[Users.login],
@@ -133,4 +116,3 @@ object UserRepository {
             .singleOrNull()
     }
 }
-
